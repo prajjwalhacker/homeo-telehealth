@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { createProxyMiddleware } from "http-proxy-middleware";
+import http from "http";
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
@@ -53,22 +53,33 @@ export async function registerRoutes(
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  app.use(
-    "/api",
-    createProxyMiddleware({
-      target: `http://127.0.0.1:${FASTAPI_PORT}`,
-      changeOrigin: true,
-      on: {
-        error: (err, req, res) => {
-          console.error("Proxy error:", err.message);
-          if (res && "writeHead" in res) {
-            (res as any).writeHead(503, { "Content-Type": "application/json" });
-            (res as any).end(JSON.stringify({ message: "FastAPI backend not available" }));
-          }
-        },
-      },
-    })
-  );
+  app.use("/api", (req, res, next) => {
+    const proxyReq = http.request({
+      hostname: "127.0.0.1",
+      port: FASTAPI_PORT,
+      path: req.originalUrl,
+      method: req.method,
+      headers: req.headers as http.OutgoingHttpHeaders
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    
+    proxyReq.on("error", (err: Error) => {
+      console.error("Proxy error:", err.message);
+      res.status(503).json({ message: "FastAPI backend not available" });
+    });
+    
+    if (req.rawBody) {
+      proxyReq.write(req.rawBody);
+      proxyReq.end();
+    } else if (req.body && Object.keys(req.body).length > 0) {
+      proxyReq.write(JSON.stringify(req.body));
+      proxyReq.end();
+    } else {
+      proxyReq.end();
+    }
+  });
 
   app.use("/uploads", (req, res, next) => {
     const filePath = path.join(uploadDir, req.path);

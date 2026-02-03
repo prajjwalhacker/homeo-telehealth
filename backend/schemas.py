@@ -1,7 +1,6 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
-import re
 
 class OTPRequest(BaseModel):
     identifier: str
@@ -41,7 +40,7 @@ class PatientProfile(BaseModel):
         return v
 
 class PatientResponse(BaseModel):
-    id: int
+    id: str
     mobile: Optional[str] = None
     email: Optional[str] = None
     fullName: Optional[str] = None
@@ -56,19 +55,22 @@ class PatientResponse(BaseModel):
     existingConditions: Optional[str] = None
     currentMedications: Optional[str] = None
     lifestyle: Optional[str] = None
+    isProfileComplete: Optional[bool] = None
     createdAt: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 class ConsultationResponse(BaseModel):
-    id: int
-    patientId: int
-    audioPath: Optional[str] = None
+    id: str
+    patientId: str
+    audioUrl: Optional[str] = None
     transcript: Optional[str] = None
+    duration: Optional[int] = None
     notes: Optional[str] = None
     status: str
     createdAt: Optional[datetime] = None
+    completedAt: Optional[datetime] = None
 
     class Config:
         from_attributes = True

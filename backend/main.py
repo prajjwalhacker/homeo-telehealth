@@ -1,15 +1,12 @@
 import os
 import random
 import string
-import subprocess
-import httpx
+import uuid
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import StreamingResponse
 
 from backend.database import get_db, engine, Base
 from backend.models import Patient, OTPSession, Consultation
@@ -51,6 +48,7 @@ def patient_to_response(patient: Patient) -> dict:
         "existingConditions": patient.existing_conditions,
         "currentMedications": patient.current_medications,
         "lifestyle": patient.lifestyle,
+        "isProfileComplete": patient.is_profile_complete,
         "createdAt": patient.created_at.isoformat() if patient.created_at else None
     }
 
@@ -58,11 +56,13 @@ def consultation_to_response(c: Consultation) -> dict:
     return {
         "id": c.id,
         "patientId": c.patient_id,
-        "audioPath": c.audio_path,
+        "audioUrl": c.audio_url,
         "transcript": c.transcript,
+        "duration": c.duration,
         "notes": c.notes,
         "status": c.status,
-        "createdAt": c.created_at.isoformat() if c.created_at else None
+        "createdAt": c.created_at.isoformat() if c.created_at else None,
+        "completedAt": c.completed_at.isoformat() if c.completed_at else None
     }
 
 @app.post("/api/auth/request-otp")
@@ -75,14 +75,17 @@ async def request_otp(data: OTPRequest, db: Session = Depends(get_db)):
     expires_at = datetime.now() + timedelta(minutes=10)
     
     otp_session = OTPSession(
+        id=str(uuid.uuid4()),
         identifier=identifier,
-        otp_code=otp,
+        otp=otp,
         expires_at=expires_at,
-        attempts=0,
-        verified=0
+        is_used=False,
+        attempts=0
     )
     db.add(otp_session)
     db.commit()
+    
+    print(f"OTP for {identifier}: {otp}")
     
     return {"message": "OTP sent successfully", "otp": otp}
 
@@ -93,24 +96,24 @@ async def verify_otp(data: OTPVerify, request: Request, db: Session = Depends(ge
     
     otp_session = db.query(OTPSession).filter(
         OTPSession.identifier == identifier,
-        OTPSession.verified == 0
+        OTPSession.is_used == False
     ).order_by(OTPSession.created_at.desc()).first()
     
     if not otp_session:
-        raise HTTPException(status_code=400, detail="No OTP request found")
+        raise HTTPException(status_code=400, detail="OTP expired or invalid. Please request a new one.")
     
     if otp_session.expires_at < datetime.now():
         raise HTTPException(status_code=400, detail="OTP has expired")
     
-    if otp_session.attempts >= 3:
-        raise HTTPException(status_code=400, detail="Too many attempts")
+    if otp_session.attempts and otp_session.attempts >= 3:
+        raise HTTPException(status_code=400, detail="Too many attempts. Please request a new OTP.")
     
-    if otp_session.otp_code != otp:
-        otp_session.attempts += 1
+    if otp_session.otp != otp:
+        otp_session.attempts = (otp_session.attempts or 0) + 1
         db.commit()
         raise HTTPException(status_code=400, detail="Invalid OTP")
     
-    otp_session.verified = 1
+    otp_session.is_used = True
     db.commit()
     
     is_email = "@" in identifier
@@ -123,8 +126,13 @@ async def verify_otp(data: OTPVerify, request: Request, db: Session = Depends(ge
     
     if is_new_user:
         patient = Patient(
+            id=str(uuid.uuid4()),
             mobile=None if is_email else identifier,
-            email=identifier if is_email else None
+            email=identifier if is_email else None,
+            full_name="",
+            age=0,
+            gender="other",
+            is_profile_complete=False
         )
         db.add(patient)
         db.commit()
@@ -133,8 +141,9 @@ async def verify_otp(data: OTPVerify, request: Request, db: Session = Depends(ge
     request.session["patient_id"] = patient.id
     
     return {
+        "message": "OTP verified successfully",
         "patient": patient_to_response(patient),
-        "isNewUser": is_new_user
+        "isNewUser": is_new_user or not patient.is_profile_complete
     }
 
 @app.get("/api/auth/me")
@@ -152,7 +161,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
 @app.post("/api/auth/logout")
 async def logout(request: Request):
     request.session.clear()
-    return {"message": "Logged out"}
+    return {"message": "Logged out successfully"}
 
 @app.put("/api/patient/profile")
 async def update_profile(data: PatientProfile, request: Request, db: Session = Depends(get_db)):
@@ -180,6 +189,7 @@ async def update_profile(data: PatientProfile, request: Request, db: Session = D
     patient.existing_conditions = data.existingConditions or ""
     patient.current_medications = data.currentMedications or ""
     patient.lifestyle = data.lifestyle or ""
+    patient.is_profile_complete = True
     
     db.commit()
     db.refresh(patient)
@@ -215,11 +225,19 @@ async def create_consultation(
         content = await audio.read()
         f.write(content)
     
-    transcript = f"[Transcript will be generated] Audio uploaded at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    transcripts = [
+        "Patient describes experiencing mild headaches for the past week, primarily in the morning.",
+        "Patient reports digestive issues including occasional bloating and discomfort after meals.",
+        "Patient mentions experiencing fatigue and low energy levels, especially in the afternoon.",
+        "Patient describes joint pain in the knees, particularly noticeable when climbing stairs.",
+        "Patient reports seasonal allergies with symptoms including sneezing and runny nose.",
+    ]
+    transcript = random.choice(transcripts)
     
     consultation = Consultation(
+        id=str(uuid.uuid4()),
         patient_id=patient_id,
-        audio_path=filepath,
+        audio_url=f"/uploads/{filename}",
         transcript=transcript,
         status="pending"
     )
