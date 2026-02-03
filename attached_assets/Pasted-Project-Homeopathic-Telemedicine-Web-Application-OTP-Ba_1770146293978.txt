@@ -1,0 +1,252 @@
+Project: Homeopathic Telemedicine Web Application (OTP-Based Login)
+Goal
+
+Build a scalable homeopathic consultation web application for Indian patients where authentication is OTP-based (mobile/email). Patients can register, access a dashboard, and have audio consultations with doctors, with conversations automatically converted to text and stored securely.
+
+Tech Stack
+Frontend
+
+React.js (latest)
+
+Responsive UI (mobile + desktop)
+
+Component-based architecture
+
+State management using Context API or Redux Toolkit
+
+OTP-based authentication flow
+
+Audio recording using Web Audio APIs
+
+Secure token storage (HTTP-only cookies preferred)
+
+Backend
+
+FastAPI (Python)
+
+Highly scalable, production-grade backend
+
+Async APIs using async/await
+
+OTP-based authentication (no passwords)
+
+JWT for session management after OTP verification
+
+Clean modular architecture:
+
+routers/
+
+services/
+
+models/
+
+schemas/
+
+utils/
+
+REST APIs (WebSockets optional but preferred)
+
+Database
+
+PostgreSQL (preferred) or MongoDB
+
+Proper indexing for user lookup
+
+Secure medical data storage
+
+OTP expiry & rate-limiting support
+
+OTP & Messaging
+
+OTP sent via:
+
+SMS (Indian mobile numbers)
+
+Email (fallback/optional)
+
+OTP features:
+
+6-digit numeric OTP
+
+Expiry (e.g., 5 minutes)
+
+Retry & resend limits
+
+Rate limiting to prevent abuse
+
+Audio & Speech-to-Text
+
+Audio recorded from patient dashboard
+
+Audio uploaded to backend
+
+Convert audio to text using a speech-to-text engine
+(e.g., Whisper / open-source STT / cloud provider)
+
+Store:
+
+Audio file (or storage reference)
+
+Converted transcript
+
+Timestamped conversation logs
+
+Core Features
+1. Patient Registration (India-Specific)
+
+Patient registration must collect detailed biodata:
+
+Full Name
+
+Age
+
+Gender
+
+Mobile Number (India – primary identifier)
+
+Email (optional but recommended)
+
+Address (City, State, Pincode)
+
+Height / Weight
+
+Blood Group
+
+Existing medical conditions
+
+Current medications
+
+Lifestyle details (smoking, alcohol, etc.)
+
+2. OTP-Based Authentication (No Passwords)
+Login / Signup Flow:
+
+User enters mobile number (India) or email
+
+Backend generates OTP
+
+OTP sent via SMS or email
+
+User submits OTP
+
+Backend verifies OTP
+
+On success:
+
+Create or fetch user
+
+Issue JWT access token
+
+User logged in
+
+Security Requirements:
+
+OTP expires after fixed time
+
+OTP usable only once
+
+Rate limiting on OTP requests
+
+JWT used for all authenticated APIs
+
+3. Patient Dashboard
+
+After login, patient can:
+
+View and update profile
+
+See past consultation history
+
+Start audio consultation
+
+View saved transcripts from previous sessions
+
+4. Audio Consultation
+
+Patient can start an audio consultation with a doctor
+
+Audio recorded in browser
+
+Audio uploaded to backend
+
+Speech converted to text asynchronously
+
+Both audio + transcript saved and linked to patient record
+
+5. Doctor Interaction (Basic)
+
+Doctor can:
+
+View patient biodata
+
+Access audio recordings
+
+Read converted text transcripts
+
+(Optional) Doctor responses via text or audio
+
+Backend Architecture Expectations
+
+Fully async FastAPI app
+
+Clean separation of concerns
+
+Background tasks for:
+
+Audio processing
+
+Speech-to-text conversion
+
+Centralized error handling
+
+Secure handling of medical & personal data
+
+Designed for future scalability:
+
+Queues for audio processing
+
+WebSocket support
+
+Microservice-ready structure
+
+Deliverables
+
+Fully functional React + FastAPI application
+
+OTP-based login (no passwords anywhere)
+
+Clean, readable, documented code
+
+Environment variable examples
+
+Seed/test data
+
+README explaining:
+
+OTP flow
+
+Authentication lifecycle
+
+Audio → text pipeline
+
+System architecture
+
+Notes
+
+Focus on security, scalability, and clean design
+
+Assume real-world medical usage
+
+Code must be Replit-ready and easy to run locally
+
+If you want next, I can:
+
+Design exact OTP DB schema
+
+Provide FastAPI OTP auth code
+
+Add WebSocket-based live audio streaming
+
+Add appointment booking & payments
+
+Just say the word.
