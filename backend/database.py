@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-user = os.getenv("DATABASE_USER")
-password = os.getenv("DATABASE_PASSWORD")
-host = os.getenv("DATABASE_HOST")
-port = os.getenv("DATABASE_PORT")
-db = os.getenv("DATABASE_NAME")
+# user = os.getenv("DATABASE_USER")
+# password = os.getenv("DATABASE_PASSWORD")
+# host = os.getenv("DATABASE_HOST")
+# port = os.getenv("DATABASE_PORT")
+# db = os.getenv("DATABASE_NAME")
 
-DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+# DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 engine = create_engine(os.getenv("DATABASE_URL"))
 
