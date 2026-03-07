@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 export async function seedDatabase() {
   console.log("Checking if seed data exists...");
+  console.log(process.env.DATABASE_URL, "Database_url");
 
   // Check if we already have seed data
   const existingPatients = await db.select().from(patients).limit(1);

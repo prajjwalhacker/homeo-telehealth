@@ -32,7 +32,7 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LoginPage} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/register">
         <ProtectedRoute component={RegisterPage} />
       </Route>

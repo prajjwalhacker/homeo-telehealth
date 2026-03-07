@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase } from "./seed";
+import "dotenv/config";
 
 const app = express();
 const httpServer = createServer(app);
@@ -62,11 +63,11 @@ app.use((req, res, next) => {
 
 (async () => {
   // Seed database with sample data
-  try {
-    await seedDatabase();
-  } catch (error) {
-    console.error("Failed to seed database:", error);
-  }
+  // try {
+  //   await seedDatabase();
+  // } catch (error) {
+  //   console.error("Failed to seed database:", error);
+  // }
 
   await registerRoutes(httpServer, app);
 
@@ -101,8 +102,7 @@ app.use((req, res, next) => {
   httpServer.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host: "127.0.0.1",
     },
     () => {
       log(`serving on port ${port}`);
