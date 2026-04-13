@@ -125,3 +125,18 @@ class AppointmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DoctorProfile(BaseModel):
+    fullName: str
+    specialization: Optional[str] = None
+    consultationFee: Optional[int] = None
+    experienceYears: Optional[int] = None
+    availableDays: Optional[str] = None
+    availableTimeStart: Optional[str] = None
+    availableTimeEnd: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    avatarColor: Optional[str] = None
+
+class AppointmentStatusUpdate(BaseModel):
+    status: str  # completed, cancelled
