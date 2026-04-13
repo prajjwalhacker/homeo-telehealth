@@ -12,7 +12,7 @@ function startFastAPI(): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log("Starting FastAPI backend on port", FASTAPI_PORT);
     
-    fastapiProcess = spawn("python", ["-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", String(FASTAPI_PORT)], {
+    fastapiProcess = spawn("python", ["-m", "uvicorn", "backend.main:app", "--reload", "--host", "0.0.0.0", "--port", String(FASTAPI_PORT)], {
       cwd: process.cwd(),
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -92,3 +92,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
+

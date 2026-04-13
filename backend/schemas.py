@@ -74,3 +74,54 @@ class ConsultationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ClinicResponse(BaseModel):
+    id: str
+    name: str
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    contactNumber: Optional[str] = None
+    createdAt: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class DoctorResponse(BaseModel):
+    id: str
+    fullName: str
+    specialization: str
+    clinic: Optional[ClinicResponse] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    experienceYears: int = 0
+    rating: float = 4.5
+    consultationFee: int = 500
+    availableDays: Optional[str] = None
+    availableTimeStart: Optional[str] = None
+    availableTimeEnd: Optional[str] = None
+    isActive: bool = True
+    avatarColor: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class AppointmentCreate(BaseModel):
+    doctorId: str
+    appointmentDate: str
+    appointmentTime: str
+    notes: Optional[str] = ""
+
+class AppointmentResponse(BaseModel):
+    id: str
+    patientId: str
+    doctorId: str
+    appointmentDate: str
+    appointmentTime: str
+    status: str
+    notes: Optional[str] = ""
+    createdAt: Optional[datetime] = None
+    doctorName: Optional[str] = None
+
+    class Config:
+        from_attributes = True

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import DashboardPage from "@/pages/dashboard";
+import DoctorLoginPage from "./pages/DocterLogin";
 
 function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,6 +40,12 @@ function Router() {
       <Route path="/dashboard">
         <ProtectedRoute component={DashboardPage} />
       </Route>
+      <Route path="/docter/login">
+         <ProtectedRoute component={DoctorLoginPage}/>
+      </Route>
+      {/* <Route path="/docter/dashboard">
+         <ProtectedRoute component={DocterDashboard}/>
+      </Route> */}
       <Route component={NotFound} />
     </Switch>
   );

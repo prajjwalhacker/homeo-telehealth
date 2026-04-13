@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from backend.database import get_db, engine, Base
-from backend.models import Patient, OTPSession, Consultation
-from backend.schemas import OTPRequest, OTPVerify, PatientProfile
+from backend.models import Patient, OTPSession, Consultation, Doctor, Appointment, Clinic
+from backend.schemas import OTPRequest, OTPVerify, PatientProfile, AppointmentCreate
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -50,6 +51,51 @@ def patient_to_response(patient: Patient) -> dict:
         "lifestyle": patient.lifestyle,
         "isProfileComplete": patient.is_profile_complete,
         "createdAt": patient.created_at.isoformat() if patient.created_at else None
+    }
+
+def clinic_to_response(c: Clinic) -> dict:
+    if not c:
+        return None
+    return {
+        "id": c.id,
+        "name": c.name,
+        "address": c.address,
+        "city": c.city,
+        "state": c.state,
+        "contactNumber": c.contact_number,
+        "createdAt": c.created_at.isoformat() if c.created_at else None
+    }
+
+def doctor_to_response(d: Doctor, c: Clinic = None) -> dict:
+    return {
+        "id": d.id,
+        "fullName": d.full_name,
+        "specialization": d.specialization,
+        "clinic": clinic_to_response(c),
+        "mobile": d.mobile,
+        "email": d.email,
+        "experienceYears": d.experience_years,
+        "rating": d.rating,
+        "consultationFee": d.consultation_fee,
+        "availableDays": d.available_days,
+        "availableTimeStart": d.available_time_start,
+        "availableTimeEnd": d.available_time_end,
+        "isActive": d.is_active,
+        "avatarColor": d.avatar_color,
+        "createdAt": d.created_at.isoformat() if d.created_at else None
+    }
+
+def appointment_to_response(a: Appointment, doctor_name: str = None) -> dict:
+    return {
+        "id": a.id,
+        "patientId": a.patient_id,
+        "doctorId": a.doctor_id,
+        "appointmentDate": a.appointment_date,
+        "appointmentTime": a.appointment_time,
+        "status": a.status,
+        "notes": a.notes,
+        "createdAt": a.created_at.isoformat() if a.created_at else None,
+        "doctorName": doctor_name
     }
 
 def consultation_to_response(c: Consultation) -> dict:
@@ -247,6 +293,218 @@ async def create_consultation(
     
     return consultation_to_response(consultation)
 
+# --- Doctor endpoints ---
+
+SEED_DOCTORS = [
+    {
+        "id": "doc-001",
+        "full_name": "Dr. Ananya Sharma",
+        "specialization": "Classical Homeopathy",
+        "clinic_name": "Sharma Homeo Clinic",
+        "clinic_address": "42, MG Road, Sector 14",
+        "city": "Gurugram",
+        "state": "Haryana",
+        "mobile": "9876543210",
+        "email": "ananya@homeohealth.in",
+        "experience_years": 12,
+        "rating": 4.8,
+        "consultation_fee": 800,
+        "available_days": "Mon,Tue,Wed,Thu,Fri",
+        "available_time_start": "09:00",
+        "available_time_end": "17:00",
+        "is_active": True,
+        "avatar_color": "#0d9488"
+    },
+    {
+        "id": "doc-002",
+        "full_name": "Dr. Rajiv Mehta",
+        "specialization": "Pediatric Homeopathy",
+        "clinic_name": "Mehta Children's Wellness",
+        "clinic_address": "B-12, Green Park Extension",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "mobile": "9876543211",
+        "email": "rajiv@homeohealth.in",
+        "experience_years": 18,
+        "rating": 4.9,
+        "consultation_fee": 1000,
+        "available_days": "Mon,Wed,Fri,Sat",
+        "available_time_start": "10:00",
+        "available_time_end": "18:00",
+        "is_active": True,
+        "avatar_color": "#7c3aed"
+    },
+    {
+        "id": "doc-003",
+        "full_name": "Dr. Priya Venkatesh",
+        "specialization": "Dermatology & Homeopathy",
+        "clinic_name": "Venkatesh Skin & Homeo Centre",
+        "clinic_address": "15, Anna Nagar Main Road",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "mobile": "9876543212",
+        "email": "priya@homeohealth.in",
+        "experience_years": 8,
+        "rating": 4.6,
+        "consultation_fee": 600,
+        "available_days": "Mon,Tue,Thu,Fri,Sat",
+        "available_time_start": "08:30",
+        "available_time_end": "16:30",
+        "is_active": True,
+        "avatar_color": "#e11d48"
+    },
+    {
+        "id": "doc-004",
+        "full_name": "Dr. Suresh Patil",
+        "specialization": "Chronic Disease Management",
+        "clinic_name": "Patil Homeopathic Hospital",
+        "clinic_address": "78, FC Road, Shivajinagar",
+        "city": "Pune",
+        "state": "Maharashtra",
+        "mobile": "9876543213",
+        "email": "suresh@homeohealth.in",
+        "experience_years": 22,
+        "rating": 4.7,
+        "consultation_fee": 900,
+        "available_days": "Mon,Tue,Wed,Thu,Fri",
+        "available_time_start": "09:30",
+        "available_time_end": "17:30",
+        "is_active": True,
+        "avatar_color": "#2563eb"
+    },
+    {
+        "id": "doc-005",
+        "full_name": "Dr. Kavita Reddy",
+        "specialization": "Women's Health & Homeopathy",
+        "clinic_name": "Reddy Wellness Clinic",
+        "clinic_address": "23, Jubilee Hills Road No.5",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "mobile": "9876543214",
+        "email": "kavita@homeohealth.in",
+        "experience_years": 15,
+        "rating": 4.9,
+        "consultation_fee": 750,
+        "available_days": "Tue,Wed,Thu,Fri,Sat",
+        "available_time_start": "10:00",
+        "available_time_end": "19:00",
+        "is_active": True,
+        "avatar_color": "#d97706"
+    }
+]
+
+@app.on_event("startup")
+async def seed_doctors():
+    db = next(get_db())
+    try:
+        existing = db.query(Doctor).count()
+        if existing == 0:
+            clinics_map = {}
+            for doc_data in SEED_DOCTORS:
+                data = doc_data.copy()
+                c_name = data.pop("clinic_name")
+                c_address = data.pop("clinic_address")
+                c_city = data.pop("city")
+                c_state = data.pop("state")
+                
+                if c_name not in clinics_map:
+                    clinic_id = "clinic-" + str(uuid.uuid4())[:8]
+                    clinic = Clinic(id=clinic_id, name=c_name, address=c_address, city=c_city, state=c_state)
+                    db.add(clinic)
+                    clinics_map[c_name] = clinic_id
+                
+                data["clinic_id"] = clinics_map[c_name]
+                doc = Doctor(**data)
+                db.add(doc)
+            db.commit()
+            print(f"Seeded {len(SEED_DOCTORS)} doctors and their clinics")
+        else:
+            print(f"Doctors table already has {existing} records, skipping seed")
+    except Exception as e:
+        print(f"Error seeding doctors: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+@app.get("/api/clinics")
+async def get_clinics(db: Session = Depends(get_db)):
+    clinics = db.query(Clinic).all()
+    return [clinic_to_response(c) for c in clinics]
+
+@app.get("/api/doctors")
+async def get_doctors(clinicId: str = None, db: Session = Depends(get_db)):
+    query = db.query(Doctor).filter(Doctor.is_active == True)
+    if clinicId:
+        query = query.filter(Doctor.clinic_id == clinicId)
+    doctors = query.all()
+    result = []
+    for d in doctors:
+        clinic = db.query(Clinic).filter(Clinic.id == d.clinic_id).first()
+        result.append(doctor_to_response(d, clinic))
+    return result
+
+@app.get("/api/doctors/{doctor_id}")
+async def get_doctor(doctor_id: str, db: Session = Depends(get_db)):
+    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    clinic = db.query(Clinic).filter(Clinic.id == doctor.clinic_id).first()
+    return doctor_to_response(doctor, clinic)
+
+@app.post("/api/appointments")
+async def create_appointment(data: AppointmentCreate, request: Request, db: Session = Depends(get_db)):
+    patient_id = request.session.get("patient_id")
+    if not patient_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    doctor = db.query(Doctor).filter(Doctor.id == data.doctorId).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    # Check for conflicting appointment
+    existing = db.query(Appointment).filter(
+        Appointment.doctor_id == data.doctorId,
+        Appointment.appointment_date == data.appointmentDate,
+        Appointment.appointment_time == data.appointmentTime,
+        Appointment.status != "cancelled"
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="This time slot is already booked")
+
+    appointment = Appointment(
+        id=str(uuid.uuid4()),
+        patient_id=patient_id,
+        doctor_id=data.doctorId,
+        appointment_date=data.appointmentDate,
+        appointment_time=data.appointmentTime,
+        notes=data.notes or "",
+        status="scheduled"
+    )
+    db.add(appointment)
+    db.commit()
+    db.refresh(appointment)
+
+    return appointment_to_response(appointment, doctor.full_name)
+
+@app.get("/api/appointments")
+async def get_appointments(request: Request, db: Session = Depends(get_db)):
+    patient_id = request.session.get("patient_id")
+    if not patient_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    appointments = db.query(Appointment).filter(
+        Appointment.patient_id == patient_id
+    ).order_by(Appointment.created_at.desc()).all()
+
+    result = []
+    for a in appointments:
+        doctor = db.query(Doctor).filter(Doctor.id == a.doctor_id).first()
+        doctor_name = doctor.full_name if doctor else "Unknown"
+        result.append(appointment_to_response(a, doctor_name))
+
+    return result
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5001)
+
